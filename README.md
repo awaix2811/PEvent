@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # **EventHub 🎉**
 <p>
 <img src="https://github.com/user-attachments/assets/e0f770ae-1b61-41ed-b43e-54428193616e" alt="Image 1" style="margin-right: 10px; margin-bottom: 10px;" width="30%"> 
@@ -137,3 +138,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 For any questions, feedback, or further information, please contact:
 
 - **Email:** [arbabhussain414@gmail.com](arbabhussain414@gmail.com)
+=======
+# PEvent
+flutter app 
+>>>>>>> 13a81d3d95fcb0e0fdfe6de15ee78bfd1919596e
