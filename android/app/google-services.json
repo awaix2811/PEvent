@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1076801344887",
+    "project_id": "event-deeac",
+    "storage_bucket": "event-deeac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1076801344887:android:d11e320bca90eba8abbd72",
+        "android_client_info": {
+          "package_name": "com.example.event_hub"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1076801344887-uv2q9drmf1ihq3av1e1g2nljjrgqsljj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhINZN_SThjzHGbJjJUDgWgvh5Q52Q40M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1076801344887-uv2q9drmf1ihq3av1e1g2nljjrgqsljj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
