@@ -27,6 +27,65 @@ class AuthController extends GetxController {
     isSecureText.value = !isSecureText.value;
   }
 
+  Future<void> sendSignInLink(String email) async {
+    final ActionCodeSettings actionCodeSettings = ActionCodeSettings(
+      url: 'https://asad-d64d9.firebaseapp.com',
+      handleCodeInApp: true,
+      androidPackageName: 'com.example.event_hub',
+      androidInstallApp: true,
+      androidMinimumVersion: '21',
+      iOSBundleId: 'com.example.eventHub',
+    );
+
+    try {
+      await auth.sendSignInLinkToEmail(
+        email: email,
+        actionCodeSettings: actionCodeSettings,
+      );
+      Get.snackbar("Success", "Email link sent to $email",
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM);
+    } on FirebaseAuthException catch (e) {
+      Get.snackbar("Error", e.message ?? "Failed to send email link",
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Future<void> signInWithEmailLink(String email, String link) async {
+    try {
+      final UserCredential userCredential =
+          await auth.signInWithEmailLink(email: email, emailLink: link);
+
+      if (userCredential.user != null) {
+        final user = userCredential.user!;
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (!userDoc.exists) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+            "email": user.email,
+            "uid": user.uid,
+            "createdAt": FieldValue.serverTimestamp(),
+            "provider": "email-link"
+          });
+        }
+        Get.offAll(() => BottomNavigationBarScreen());
+      }
+    } on FirebaseAuthException catch (e) {
+      Get.snackbar("Sign-in Failed", e.message ?? "Error signing in",
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
   void register() async {
     try {
       if (passwordController.text != confirmpasswordController.text) {
@@ -110,55 +169,6 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> addEventToUser(String uid, Event event) async {
-    try {
-      DocumentReference eventDocRef =
-          FirebaseFirestore.instance.collection('events').doc(uid);
-
-      // Create event map
-      Map<String, dynamic> eventMap = {
-        'events_title': event.eventsTitle,
-        'imgUrl': event.imgUrl,
-        'events_date': event.eventsDate,
-        'events_day': event.eventsDay,
-        'events_name': event.eventsName,
-        'address': event.address,
-        'about_events': event.aboutEvents,
-      };
-
-      // First check if the events_data array exists
-      DocumentSnapshot docSnapshot = await eventDocRef.get();
-
-      if (docSnapshot.exists) {
-        Map<String, dynamic> docData =
-            docSnapshot.data() as Map<String, dynamic>;
-
-        if (docData.containsKey('events_data')) {
-          // If array exists, add to it
-          await eventDocRef.update({
-            'events_data': FieldValue.arrayUnion([eventMap])
-          });
-        } else {
-          await eventDocRef.update({
-            'events_data': [eventMap]
-          });
-        }
-      } else {
-        await eventDocRef.set({
-          'Uid': uid,
-          'createdAt': FieldValue.serverTimestamp(),
-          'events_data': [eventMap]
-        });
-      }
-
-      print("Event added successfully!");
-    } catch (e) {
-      print("Error adding event: $e");
-      throw e;
-    }
-  }
-
-  // login
   void login() async {
     try {
       isLoginLoading(true);
@@ -207,7 +217,67 @@ class AuthController extends GetxController {
     }
   }
 
-// Add this method to the AuthController class
+  Future<UserCredential?> loginWithGoogle() async {
+    try {
+      isGoogleLoading(true);
+
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (userCredential.additionalUserInfo?.isNewUser ?? false) {
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(userCredential.user!.uid)
+            .set({
+          "username": userCredential.user!.displayName ?? "",
+          "email": userCredential.user!.email ?? "",
+          "uid": userCredential.user!.uid,
+          "photoUrl": userCredential.user!.photoURL,
+          "createdAt": FieldValue.serverTimestamp(),
+          "provider": "google"
+        });
+      }
+
+      Get.offAll(() => BottomNavigationBarScreen());
+      return userCredential;
+    } catch (e) {
+      Get.snackbar("Google Sign-in Error",
+          "An unexpected error occurred. Please try again.",
+          backgroundColor: AppColors.redColor,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM);
+      return null;
+    } finally {
+      isGoogleLoading(false);
+    }
+  }
+
+  void logout() async {
+    try {
+      await auth.signOut();
+      if (await _googleSignIn.isSignedIn()) {
+        await _googleSignIn.signOut();
+      }
+      emailController.clear();
+      passwordController.clear();
+      Get.offAll(() => SignInScreen());
+    } catch (e) {
+      Get.snackbar("Logout Failed", "Failed to log out. Please try again.",
+          backgroundColor: AppColors.redColor,
+          snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
   Future<void> sendPasswordResetEmail() async {
     try {
       isResetLoading.value = true;
@@ -220,7 +290,7 @@ class AuthController extends GetxController {
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
-      Get.back(); // Go back to sign in screen
+      Get.back();
     } on FirebaseAuthException catch (e) {
       String message = 'An error occurred';
       if (e.code == 'user-not-found') {
@@ -246,118 +316,48 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<UserCredential?> loginWithGoogle() async {
+  Future<void> addEventToUser(String uid, Event event) async {
     try {
-      isGoogleLoading(true);
+      DocumentReference eventDocRef =
+          FirebaseFirestore.instance.collection('events').doc(uid);
 
-      if (_googleSignIn == null) {
-        _googleSignIn = GoogleSignIn();
-      }
+      Map<String, dynamic> eventMap = {
+        'events_title': event.eventsTitle,
+        'imgUrl': event.imgUrl,
+        'events_date': event.eventsDate,
+        'events_day': event.eventsDay,
+        'events_name': event.eventsName,
+        'address': event.address,
+        'about_events': event.aboutEvents,
+      };
 
-      // Add debug logs
-      print("Starting Google Sign-In process");
+      DocumentSnapshot docSnapshot = await eventDocRef.get();
 
-      // Try to sign in
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (docSnapshot.exists) {
+        Map<String, dynamic> docData =
+            docSnapshot.data() as Map<String, dynamic>;
 
-      // Debug
-      print(
-          "Google Sign-In result: ${googleUser != null ? 'Success' : 'Cancelled or Failed'}");
-
-      if (googleUser == null) {
-        Get.snackbar("Sign-in Cancelled", "Google sign-in was cancelled",
-            backgroundColor: Colors.orange,
-            colorText: Colors.white,
-            snackPosition: SnackPosition.BOTTOM);
-        return null;
-      }
-      print("Getting authentication details for: ${googleUser.email}");
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      print("Access token obtained: ${googleAuth.accessToken != null}");
-      print("ID token obtained: ${googleAuth.idToken != null}");
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      try {
-        print("Attempting to sign in with Firebase using Google credential");
-        final userCredential =
-            await FirebaseAuth.instance.signInWithCredential(credential);
-        print("Firebase sign-in successful: ${userCredential.user?.email}");
-        if (userCredential.additionalUserInfo?.isNewUser ?? false) {
-          print("New user detected, saving to Firestore");
-          await FirebaseFirestore.instance
-              .collection("users")
-              .doc(userCredential.user!.uid)
-              .set({
-            "username": userCredential.user!.displayName ?? "",
-            "email": userCredential.user!.email ?? "",
-            "uid": userCredential.user!.uid,
-            "photoUrl": userCredential.user!.photoURL,
-            "createdAt": FieldValue.serverTimestamp(),
-            "provider": "google"
+        if (docData.containsKey('events_data')) {
+          await eventDocRef.update({
+            'events_data': FieldValue.arrayUnion([eventMap])
+          });
+        } else {
+          await eventDocRef.update({
+            'events_data': [eventMap]
           });
         }
-        Get.offAll(() => BottomNavigationBarScreen());
-        return userCredential;
-      } on FirebaseAuthException catch (e) {
-        print("Firebase Auth Exception: ${e.code} - ${e.message}");
-        String errorMessage = "Failed to sign in with Google.";
-        switch (e.code) {
-          case 'account-exists-with-different-credential':
-            errorMessage =
-                "An account already exists with the same email address but different sign-in credentials.";
-            break;
-          case 'invalid-credential':
-            errorMessage = "The credential is malformed or has expired.";
-            break;
-          case 'operation-not-allowed':
-            errorMessage = "Google sign-in is not enabled for this project.";
-            break;
-          case 'user-disabled':
-            errorMessage = "This user account has been disabled.";
-            break;
-          case 'user-not-found':
-            errorMessage = "No user found for that email.";
-            break;
-          default:
-            errorMessage = e.message ?? "Authentication failed.";
-            break;
-        }
-        Get.snackbar("Sign-in Failed", errorMessage,
-            backgroundColor: AppColors.redColor,
-            colorText: Colors.white,
-            snackPosition: SnackPosition.BOTTOM);
-        return null;
+      } else {
+        await eventDocRef.set({
+          'Uid': uid,
+          'createdAt': FieldValue.serverTimestamp(),
+          'events_data': [eventMap]
+        });
       }
-    } catch (e) {
-      print("Google Login Error: ${e.toString()}");
-      Get.snackbar("Google Sign-in Error",
-          "An unexpected error occurred. Please try again.",
-          backgroundColor: AppColors.redColor,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM);
-      return null;
-    } finally {
-      isGoogleLoading(false);
-    }
-  }
 
-  void logout() async {
-    try {
-      await auth.signOut();
-      if (await _googleSignIn.isSignedIn()) {
-        await _googleSignIn.signOut();
-      }
-      emailController.clear();
-      passwordController.clear();
-      Get.offAll(() => SignInScreen());
+      print("Event added successfully!");
     } catch (e) {
-      print("Logout Error: ${e.toString()}");
-      Get.snackbar("Logout Failed", "Failed to log out. Please try again.",
-          backgroundColor: AppColors.redColor,
-          snackPosition: SnackPosition.BOTTOM);
+      print("Error adding event: $e");
+      throw e;
     }
   }
 }

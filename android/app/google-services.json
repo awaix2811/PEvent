@@ -1,33 +1,41 @@
 {
   "project_info": {
-    "project_number": "1076801344887",
-    "project_id": "event-deeac",
-    "storage_bucket": "event-deeac.firebasestorage.app"
+    "project_number": "241267193166",
+    "project_id": "asad-d64d9",
+    "storage_bucket": "asad-d64d9.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1076801344887:android:d11e320bca90eba8abbd72",
+        "mobilesdk_app_id": "1:241267193166:android:3530eaf563bf479c5dda1f",
         "android_client_info": {
           "package_name": "com.example.event_hub"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1076801344887-uv2q9drmf1ihq3av1e1g2nljjrgqsljj.apps.googleusercontent.com",
+          "client_id": "241267193166-6mnn6acve889mpvpgb7r4clopiffen1m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.event_hub",
+            "certificate_hash": "a239dba72a6e6c24fb944b124fb1f74f7d724f27"
+          }
+        },
+        {
+          "client_id": "241267193166-e1lsgkp09nl2qvo5gqs5bgerddbqjdq8.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBhINZN_SThjzHGbJjJUDgWgvh5Q52Q40M"
+          "current_key": "AIzaSyDWZiBhSS85T4Sfw6CsSCuVUhfiGQzDxQw"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "1076801344887-uv2q9drmf1ihq3av1e1g2nljjrgqsljj.apps.googleusercontent.com",
+              "client_id": "241267193166-e1lsgkp09nl2qvo5gqs5bgerddbqjdq8.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
